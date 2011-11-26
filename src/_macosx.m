@@ -22,6 +22,21 @@
 #define COMPILING_FOR_10_5
 #endif
 
+/* We don't seem to get PY3K from anywhere */
+#if PY_MAJOR_VERSION >= 3
+#define PY3K 1
+#else
+#define PY3K 0
+#endif
+
+/* Must define PyInt_* for Python 3 or newer */
+#if PY3K
+  #define PyInt_Check PyLong_Check
+  #define PyInt_FromLong PyLong_FromLong
+  #define PyInt_AsLong PyLong_AsLong
+  #define PyInt_AS_LONG PyLong_AS_LONG
+#endif
+
 static int nwin = 0;   /* The number of open windows */
 
 /* Use Atsui for Mac OS X 10.4, CoreText for Mac OS X 10.5 */
@@ -2252,9 +2267,6 @@ setfont(CGContextRef cr, PyObject* family, float size, const char weight[],
 #else
     ATSFontRef font = 0;
 #endif
-#if PY3K
-    PyObject* ascii = NULL;
-#endif
 
     const int k = (strcmp(italic, "italic") ? 0 : 2)
                 + (strcmp(weight, "bold") ? 0 : 1);
@@ -2435,10 +2447,6 @@ setfont(CGContextRef cr, PyObject* family, float size, const char weight[],
     for (i = 0; i < n; i++)
     {
         PyObject* item = PyList_GET_ITEM(family, i);
-#if PY3K
-        Py_DECREF(ascii);
-        ascii = NULL;
-#endif
     }
     if(!font)
     {   string = CFStringCreateWithCString(kCFAllocatorDefault,
@@ -2453,9 +2461,6 @@ setfont(CGContextRef cr, PyObject* family, float size, const char weight[],
     }
 #ifndef COMPILING_FOR_10_5
     CGContextSelectFont(cr, name, size, kCGEncodingMacRoman);
-#endif
-#if PY3K
-    Py_XDECREF(ascii);
 #endif
     return font;
 }
@@ -5800,7 +5805,7 @@ static struct PyModuleDef moduledef = {
     NULL
 };
 
-PyObject* PyInit__macosx(void)
+PyMODINIT_FUNC* PyInit__macosx(void)
 
 #else
 
@@ -5847,4 +5852,7 @@ void init_macosx(void)
     PyModule_AddObject(module, "Timer", (PyObject*) &TimerType);
 
     PyOS_InputHook = wait_for_stdin;
+#if PY3K
+    return module;
+#endif
 }
